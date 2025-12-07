@@ -2,36 +2,9 @@ import xml.etree.ElementTree as ET
 import urllib.parse
 from typing import TypedDict, Generator, Optional, Callable, List
 from llm_client import clean_with_llm, extract_events_with_llm
+from schema import WikiPage, HistoricalEvent
 
-class EventTime(TypedDict):
-    time_str: str
-    precision: str
-    year: Optional[int]
-    month: Optional[int]
-    day: Optional[int]
-    hour: Optional[int]
-    minute: Optional[int]
-    second: Optional[int]
-
-class EventLocation(TypedDict):
-    location_name: str
-    precision: str
-    latitude: Optional[float]
-    longitude: Optional[float]
-
-class HistoricalEvent(TypedDict):
-    event_title: str
-    event_description: str
-    start_time: EventTime
-    end_time: Optional[EventTime]
-    location: EventLocation
-
-class WikiPage(TypedDict):
-    title: str
-    raw_content: str
-    plain_text_content: str
-    events: List[HistoricalEvent]
-    link: str
+# EventTime, EventLocation, HistoricalEvent moved to schema.py
 
 def get_tag_name(element):
     """
