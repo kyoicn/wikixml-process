@@ -104,7 +104,10 @@ def process_xml(file_path: str, status_callback: Optional[Callable[[dict], None]
                 events = extract_events_with_llm(plain_text)
                 # DEBUG PRINT
                 import sys
-                print(f"DEBUG: Extracting events for {title}, count: {len(events)}", file=sys.stderr)
+                print(f"Extracting events for {title}, count: {len(events)}", file=sys.stderr)
+                
+                if status_callback:
+                    status_callback({"stage": "events_done", "title": title, "count": len(events)})
                 
                 yield {
                     'title': title,

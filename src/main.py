@@ -64,7 +64,12 @@ def main():
     count = 0
     
     # Status Panel state
-    current_status = {"title": "Waiting...", "stage": "Initializing", "details": ""}
+    current_status = {
+        "title": "Waiting...",
+        "stage": "Initializing",
+        "raw_len": 0,
+        "event_count": 0
+    }
 
     def get_status_panel():
         status_table = Table.grid(padding=1)
@@ -73,8 +78,8 @@ def main():
         
         status_table.add_row("Current Page:", current_status["title"])
         status_table.add_row("Stage:", current_status["stage"])
-        if current_status["details"]:
-             status_table.add_row("Details:", current_status["details"])
+        status_table.add_row("Raw Content:", f"{current_status['raw_len']} chars")
+        status_table.add_row("Extracted Events:", str(current_status['event_count']))
              
         return Panel(
             status_table, 
@@ -102,12 +107,13 @@ def main():
 
         if info["stage"] == "start":
             current_status["stage"] = "Reading XML..."
-            current_status["details"] = ""
+            current_status["raw_len"] = 0
+            current_status["event_count"] = 0
             # Progress bar remains "Overall Progress"
             
         elif info["stage"] == "content":
             current_status["stage"] = "Found Wikitext"
-            current_status["details"] = f"{info['len']} chars"
+            current_status["raw_len"] = info.get('len', 0)
             
         elif info["stage"] == "llm":
             current_status["stage"] = "[bold magenta]Calling LLM...[/bold magenta]"
@@ -116,6 +122,14 @@ def main():
             current_status["stage"] = "[bold cyan]Extracting Events...[/bold cyan]"
             progress.update(task_id, description=f"Extracting Events: [bold]{info['title']}[/bold]")
 
+        elif info["stage"] == "events_done":
+            current_status["stage"] = "Events Extracted"
+            current_status["event_count"] = info.get('count', 0)
+            progress.update(task_id, description="Overall Progress")
+
+    import time
+    start_time = time.time()
+    
     try:
         # Use Live display to render the group of widgets
         # Reordered: Config -> Status -> Progress
@@ -129,17 +143,25 @@ def main():
                 # Update panel with the live context (Reordered)
                 live.update(Group(config_panel, get_status_panel(), progress))
                 
+        end_time = time.time()
+        total_time = end_time - start_time
+        avg_time = total_time / count if count > 0 else 0
+        
         # Final Summary
-        console.print(f"\n[bold green]Finished processing![/bold green]")
+        summary_table = Table.grid(padding=1)
+        summary_table.add_column(style="cyan", justify="right")
+        summary_table.add_column(style="white")
+        summary_table.add_row("Total Pages:", str(count))
+        summary_table.add_row("Total Time:", f"{total_time:.2f}s")
+        summary_table.add_row("Avg Time/Page:", f"{avg_time:.2f}s")
         
-        # Summary Table
-        summary_table = Table(title="Processing Summary")
-        summary_table.add_column("Metric", style="cyan", no_wrap=True)
-        summary_table.add_column("Value", style="magenta")
-        summary_table.add_row("Total Pages", str(count))
-        summary_table.add_row("LLM Model", llm_client.OLLAMA_MODEL)
-        
-        console.print(summary_table)
+        summary_panel = Panel(
+            summary_table,
+            title="[bold green]Processing Complete![/bold green]",
+            border_style="green",
+            expand=False
+        )
+        console.print(summary_panel)
 
         if data:
             console.print("\n[bold]Last processed item sample:[/bold]")
