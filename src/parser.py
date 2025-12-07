@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import urllib.parse
-from typing import TypedDict, Generator
+from typing import TypedDict, Generator, Optional, Callable
+from llm_client import clean_with_llm
 
 class WikiPage(TypedDict):
     title: str
@@ -23,18 +24,9 @@ def construct_wiki_url(title):
     Replaces spaces with underscores.
     """
     safe_title = title.replace(' ', '_')
-    # Although wikipedia handles many chars, safe encoding is good practice, 
-    # but standard requirement is usually just space->underscore for basic links.
-    # We will percent-encode to be safe for a valid URL.
-    # safe_title = urllib.parse.quote(safe_title) # Optional: user might want raw readable links, but standard is encoded.
-    # Let's stick to simple replacement for now as it's more human readable in JSON, 
-    # unless special chars demand encoding. Wikipedia usually redirects well.
-    # Actually, let's just do space -> underscore as requested implicitly by standard wiki format.
     return f"https://en.wikipedia.org/wiki/{safe_title}"
 
-from llm_client import clean_with_llm
-
-def process_xml(file_path: str) -> Generator[WikiPage, None, None]:
+def process_xml(file_path: str, status_callback: Optional[Callable[[dict], None]] = None) -> Generator[WikiPage, None, None]:
     """
     Iteratively parses the XML file yielding dictionaries of extracted data.
     """
@@ -56,22 +48,35 @@ def process_xml(file_path: str) -> Generator[WikiPage, None, None]:
             # However, simpler to look at children directly if file isn't massive within a single page node.
             # Standard wikipedia pages aren't RAM-breakingly huge usually.
             
+            # We need to find the title first for the callback if we want to be precise,
+            # but element children order might vary. Usually title is first.
+            # Let's iterate and extract.
+            
             for child in elem:
                 child_tag = get_tag_name(child)
                 if child_tag == 'title':
                     title = child.text
+                    if status_callback and title:
+                        status_callback({"stage": "start", "title": title})
                 elif child_tag == 'revision':
                     for rev_child in child:
                         if get_tag_name(rev_child) == 'text':
                             text_content = rev_child.text
+                            if status_callback and text_content and title:
+                                status_callback({"stage": "content", "title": title, "len": len(text_content)})
                             break
             
             if title:
                 raw_content = text_content or ""
+                if status_callback:
+                    status_callback({"stage": "llm", "title": title})
+                
+                plain_text = clean_with_llm(raw_content)
+                
                 yield {
                     'title': title,
                     'raw_content': raw_content,
-                    'plain_text_content': clean_with_llm(raw_content),
+                    'plain_text_content': plain_text,
                     'link': construct_wiki_url(title)
                 }
             

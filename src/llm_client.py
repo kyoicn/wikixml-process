@@ -10,9 +10,15 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL")
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant that converts Wikipedia Wikitext to clean, human-readable plain text. "
-    "Remove all templates, markup, links, and formatting. "
-    "Output ONLY the plain text content. Do not add any conversational filler."
+    "Remove all unnecessary templates, tags, annotations that are not for human reading. "
+    "Only extract text content based on what exists in the input."
+    "Only output the plain text content based on what you see."
+    "You can use lightweight formatting for structured information, such as newlines and lists."
+    "DO NOT add any additional information or content that is not present in the input."
 )
+
+MODEL_TEMPERATURE = 0.1  # Low temperature for deterministic cleaning
+MODEL_NUM_PREDICT = -1   # Allow sufficient output
 
 def clean_with_llm(text: str) -> str:
     """
@@ -33,8 +39,8 @@ def clean_with_llm(text: str) -> str:
         "prompt": full_prompt,
         "stream": False,
         "options": {
-            "temperature": 0.1, # Low temperature for deterministic cleaning
-            "num_predict": -1   # Allow sufficient output
+            "temperature": MODEL_TEMPERATURE,
+            "num_predict": MODEL_NUM_PREDICT,
         }
     }
 
