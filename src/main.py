@@ -1,13 +1,19 @@
 import argparse
-import json
 import os
 import sys
+import json
+import signal
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
-from parser import process_xml
+def sigterm_handler(signum, frame):
+    raise KeyboardInterrupt
+
+signal.signal(signal.SIGTERM, sigterm_handler)
+
+from wiki_parser import process_xml
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_FILE = os.path.join(CURRENT_DIR, "../data/raw/sample.xml")
@@ -105,6 +111,10 @@ def main():
             
         elif info["stage"] == "llm":
             current_status["stage"] = "[bold magenta]Calling LLM...[/bold magenta]"
+            
+        elif info["stage"] == "events":
+            current_status["stage"] = "[bold cyan]Extracting Events...[/bold cyan]"
+            progress.update(task_id, description=f"Extracting Events: [bold]{info['title']}[/bold]")
 
     try:
         # Use Live display to render the group of widgets

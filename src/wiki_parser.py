@@ -1,12 +1,36 @@
 import xml.etree.ElementTree as ET
 import urllib.parse
-from typing import TypedDict, Generator, Optional, Callable
-from llm_client import clean_with_llm
+from typing import TypedDict, Generator, Optional, Callable, List
+from llm_client import clean_with_llm, extract_events_with_llm
+
+class EventTime(TypedDict):
+    time_str: str
+    precision: str
+    year: Optional[int]
+    month: Optional[int]
+    day: Optional[int]
+    hour: Optional[int]
+    minute: Optional[int]
+    second: Optional[int]
+
+class EventLocation(TypedDict):
+    location_name: str
+    precision: str
+    latitude: Optional[float]
+    longitude: Optional[float]
+
+class HistoricalEvent(TypedDict):
+    event_title: str
+    event_description: str
+    start_time: EventTime
+    end_time: Optional[EventTime]
+    location: EventLocation
 
 class WikiPage(TypedDict):
     title: str
     raw_content: str
     plain_text_content: str
+    events: List[HistoricalEvent]
     link: str
 
 def get_tag_name(element):
@@ -73,10 +97,20 @@ def process_xml(file_path: str, status_callback: Optional[Callable[[dict], None]
                 
                 plain_text = clean_with_llm(raw_content)
                 
+                # Extract events
+                if status_callback:
+                    status_callback({"stage": "events", "title": title})
+                    
+                events = extract_events_with_llm(plain_text)
+                # DEBUG PRINT
+                import sys
+                print(f"DEBUG: Extracting events for {title}, count: {len(events)}", file=sys.stderr)
+                
                 yield {
                     'title': title,
                     'raw_content': raw_content,
                     'plain_text_content': plain_text,
+                    'events': events,
                     'link': construct_wiki_url(title)
                 }
             
