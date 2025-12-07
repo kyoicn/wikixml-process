@@ -11,10 +11,16 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL")
 SYSTEM_PROMPT = (
     "You are a helpful assistant that converts Wikipedia Wikitext to clean, human-readable plain text. "
     "Remove all unnecessary templates, tags, annotations that are not for human reading. "
-    "Only extract text content based on what exists in the input."
-    "Only output the plain text content based on what you see."
-    "You can use lightweight formatting for structured information, such as newlines and lists."
-    "DO NOT add any additional information or content that is not present in the input."
+    "Only extract text content based on what exists in the input. "
+    "Only output the plain text content based on what you see. "
+    "You can use lightweight formatting for structured information, such as newlines and lists. "
+    "DO NOT add any additional information or content that is not present in the input. "
+)
+
+SYSTEM_PROMPT_ALT = (
+    "The following is the raw content of a wikipedia data, which contains many annotations not for human readers. "
+    "Help me convert it to a human-readable version by removing unnecessary annotations and other parts. "
+    "The output should be plain text only with only minimum necessary formatting."
 )
 
 MODEL_TEMPERATURE = 0.1  # Low temperature for deterministic cleaning
@@ -32,7 +38,7 @@ def clean_with_llm(text: str) -> str:
     # Construct the prompt
     # Using raw prompt format. For chat models, using /api/chat might be better, 
     # but /api/generate works if the prompt is structured or if the model is flexible.
-    full_prompt = f"{SYSTEM_PROMPT}\n\nInput Wikitext:\n{text}\n\nPlain Text Output:"
+    full_prompt = f"{SYSTEM_PROMPT_ALT}\n\nInput Wikitext:\n{text}\n\nPlain Text Output:"
 
     payload = {
         "model": OLLAMA_MODEL,
