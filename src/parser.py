@@ -1,5 +1,12 @@
 import xml.etree.ElementTree as ET
 import urllib.parse
+from typing import TypedDict, Generator
+
+class WikiPage(TypedDict):
+    title: str
+    raw_content: str
+    plain_text_content: str
+    link: str
 
 def get_tag_name(element):
     """
@@ -25,7 +32,9 @@ def construct_wiki_url(title):
     # Actually, let's just do space -> underscore as requested implicitly by standard wiki format.
     return f"https://en.wikipedia.org/wiki/{safe_title}"
 
-def process_xml(file_path):
+from llm_client import clean_with_llm
+
+def process_xml(file_path: str) -> Generator[WikiPage, None, None]:
     """
     Iteratively parses the XML file yielding dictionaries of extracted data.
     """
@@ -58,9 +67,11 @@ def process_xml(file_path):
                             break
             
             if title:
+                raw_content = text_content or ""
                 yield {
                     'title': title,
-                    'content': text_content or "", # Handle None if empty
+                    'raw_content': raw_content,
+                    'plain_text_content': clean_with_llm(raw_content),
                     'link': construct_wiki_url(title)
                 }
             

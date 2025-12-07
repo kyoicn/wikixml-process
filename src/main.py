@@ -2,13 +2,16 @@ import argparse
 import json
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from parser import process_xml
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Assuming PROJECT_ROOT is the parent directory of CURRENT_DIR based on original relative paths
-PROJECT_ROOT = os.path.join(CURRENT_DIR, "..")
-INPUT_FILE = os.path.join(PROJECT_ROOT, "sample.xml")
-OUTPUT_FILE = os.path.join(PROJECT_ROOT, "output.json")
+INPUT_FILE = os.path.join(CURRENT_DIR, "../data/raw/sample.xml")
+OUTPUT_FILE = os.path.join(CURRENT_DIR, "../data/processed/output.json")
 
 def main():
     parser = argparse.ArgumentParser(description="Extract Wikipedia data from XML dump.")
